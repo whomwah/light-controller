@@ -1,10 +1,8 @@
 require 'rubygems'
-require 'open-uri'
-require 'hpricot'
-require 'cgi'
+require 'osc'
 
 configure do
-  LIGHTS_PROXY = 'http://54.5.5.5'
+  LIGHTS_PROXY = 'http://10.54.146.25'
 end
 
 helpers do
@@ -12,11 +10,14 @@ helpers do
     LIGHTS = [1,2]
 
     def self.set_lights(options=nil)
+      sock = OSC::UDPSocket.new
+      sock.connect('10.54.146.25', 7770)
+
       colour = options[:colour] if options.is_a?(Hash) && options.has_key?(:colour)
       lights = options[:lights] if options.is_a?(Hash) && options.has_key?(:lights)
       result = []
       lights.each do |light|
-        l = Light.new(colour,light)
+        l = Light.new(sock,colour,light)
         result << l.display
       end 
       return result.join
@@ -25,19 +26,49 @@ helpers do
 
   class Light
     COLOURS = {
-      :blue  => [0,0,255],
       :red   => [255,0,0],
       :green => [0,255,0],
+      :blue  => [0,0,255],
+    }
+    CHANNELS = {
+      1 => [1,2,3],
+      2 => [4,5,6],
     }
 
-    def initialize(colour,light)
+    def initialize(sock,colour,light)
       @colour = colour
-      @light = light
+      @light = light.to_i
+      @sock = sock
+    end
+    
+    def display
+      count = 0
+      colour_channel_hash.each do |c|
+        @sock.send OSC::Message.new("/dmx/#{CHANNELS[@light][count]}/set", 'f', c), 0
+        count = count + 1
+      end
+      self.to_s
+    end 
+
+    def to_s
+      "<p>Setting the color to <em style='#{self.to_css}font-weight:bold;'>#{@colour}</em> for light <em>#{@light}</em></p>"
     end
 
-    def display
-      "<p>Setting the color to <em style='#{self.to_css}'>#{@colour}</em> for light <em>#{@light}</em></p>"
-    end 
+    def colour_channel_hash
+      if COLOURS.has_key?(@colour.to_sym)
+        c = COLOURS[@colour.to_sym] 
+      else
+        c = @colour.gsub('rgb','').split('-')
+      end
+      puts c.inspect
+
+      data = []
+      (1..3).each do |i|
+        data << '%.1f' % ((c[i-1].to_f/255.0 * 100.0).to_f / 100)
+      end
+
+      data
+    end
 
     def to_css
       # color: rgb(51, 51, 51);
@@ -47,7 +78,6 @@ helpers do
         c = @colour.gsub('rgb','').gsub('-',',')
         "color:rgb(#{c});" 
       end
-        
     end
   end
 end
