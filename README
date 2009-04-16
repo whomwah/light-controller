@@ -1,0 +1,8 @@
+Light Controller
+================
+
+A simple HTTP proxy for controlling the spotlights at work. You can do things like
+
+http://lights.local/all/red
+http://lights.local/2/green
+http://lights.local/all/rgb100-200-255
