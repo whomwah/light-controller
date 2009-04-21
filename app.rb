@@ -33,13 +33,14 @@ helpers do
       @sock = socket 
       @colour = opts[:colour] if opts.is_a?(Hash) && opts.has_key?(:colour)
       @light = opts[:light].to_i if opts.is_a?(Hash) && opts.has_key?(:light)
+      @channels = opts[:channels] if opts.is_a?(Hash) && opts.has_key?(:channels)
       @rgb = opts[:rgb]
     end
     
     def display
       count = 0
       colour_channel_hash.each do |c|
-        @sock.send OSC::Message.new("/dmx/#{CHANNELS[@light][count]}/set", 'f', c), 0
+        @sock.send OSC::Message.new("/dmx/#{@channels[@light][count]}/set", 'f', c), 0
         count = count + 1
       end
       self.to_s
@@ -48,6 +49,18 @@ helpers do
     def to_s
       "Setting the color to <em style='#{self.to_css}font-weight:bold;'>#{@colour}</em> for light <em>#{@light}</em>\n"
     end
+
+    def to_css
+      # color: rgb(51, 51, 51);
+      if @rgb.has_key?(@colour.to_sym)
+        "color:rgb(#{@rgb[@colour.to_sym].join(',')});" 
+      else
+        c = @colour.gsub('rgb','').gsub('-',',')
+        "color:rgb(#{c});" 
+      end
+    end
+
+    private
 
     def colour_channel_hash
       return [] unless @rgb
@@ -66,15 +79,6 @@ helpers do
       data
     end
 
-    def to_css
-      # color: rgb(51, 51, 51);
-      if @rgb.has_key?(@colour.to_sym)
-        "color:rgb(#{@rgb[@colour.to_sym].join(',')});" 
-      else
-        c = @colour.gsub('rgb','').gsub('-',',')
-        "color:rgb(#{c});" 
-      end
-    end
   end
 end
 
@@ -92,10 +96,11 @@ before do
 end
 
 # /all/red
-get %r{/(1|2|all)+/(rgb\d{0,3}-\d{0,3}-\d{0,3}|red|blue|green|random)+$} do
+get %r{/(1|2|all)+/(rgb\d{0,3}-\d{0,3}-\d{0,3}|red|blue|green|random|off)+$} do
   lights = [params['captures'].first]
   lights = @lights if lights.include?('all')
   colour = params['captures'][1]
+  colour = 'rgb0-0-0' if colour == 'off'
   halt 404, 'Oh dear! I understand what you\'re saying' unless lights && colour 
   LC.set_lights(
     :lights => lights,
@@ -104,8 +109,6 @@ get %r{/(1|2|all)+/(rgb\d{0,3}-\d{0,3}-\d{0,3}|red|blue|green|random)+$} do
     :channels => @channels
   )
 end
-
-# /(1|2|all)+/(red|blue|green|random)+/for-seconds/(\d{2})+/(flashing|strobing)?
 
 get '/' do
   erb :index 
