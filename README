@@ -3,6 +3,8 @@ Light Controller
 
 A simple HTTP proxy for controlling the spotlights at work. You can do things like
 
-http://lights.local/all/red
-http://lights.local/2/green
-http://lights.local/all/rgb100-200-255
+http://lights.local/all/(red|green|blue)
+http://lights.local/all/rgb125-125-125
+http://lights.local/(all|1|2)/red
+http://lights.local/(all|1|2)/off
+http://lights.local/(all|1|2)/random
