@@ -1,12 +1,12 @@
-require 'osc'
-#module OSC
-#  class UDPSocket
-#    def initialize
-#    end
-#    def connect(a,b)
-#    end
-#  end
-#end
+#require 'osc'
+module OSC
+  class UDPSocket
+    def initialize
+    end
+    def connect(a,b)
+    end
+  end
+end
 
 helpers do
   class LC 
@@ -30,52 +30,46 @@ helpers do
     attr_writer :rgb
 
     def initialize(socket, opts=nil)
-      @sock = socket 
-      @colour = opts[:colour] if opts.is_a?(Hash) && opts.has_key?(:colour)
-      @light = opts[:light].to_i if opts.is_a?(Hash) && opts.has_key?(:light)
+      @sock     = socket 
+      @rgb      = opts[:rgb]
       @channels = opts[:channels] if opts.is_a?(Hash) && opts.has_key?(:channels)
-      @rgb = opts[:rgb]
+      @colour   = opts[:colour] if opts.is_a?(Hash) && opts.has_key?(:colour)
+      @light    = opts[:light].to_i if opts.is_a?(Hash) && opts.has_key?(:light)
     end
     
     def display
       count = 0
-      colour_channel_hash.each do |c|
-        @sock.send OSC::Message.new("/dmx/#{@channels[@light][count]}/set", 'f', c), 0
+      channel_data_from_rgb(color_as_rgb).each do |c|
+        #@sock.send OSC::Message.new("/dmx/#{@channels[@light][count]}/set", 'f', c), 0
         count = count + 1
       end
       self.to_s
     end 
 
     def to_s
-      "Setting the color to <em style='#{self.to_css}font-weight:bold;'>#{@colour}</em> for light <em>#{@light}</em>\n"
+      "Light #{@light} : rgb(#{self.to_css})\n"
     end
 
     def to_css
-      # color: rgb(51, 51, 51);
-      if @rgb.has_key?(@colour.to_sym)
-        "color:rgb(#{@rgb[@colour.to_sym].join(',')});" 
-      else
-        c = @colour.gsub('rgb','').gsub('-',',')
-        "color:rgb(#{c});" 
-      end
+      color_as_rgb.join(',') 
     end
 
     private
 
-    def colour_channel_hash
-      return [] unless @rgb
+    def color_as_rgb 
+      return [0,0,0] if @colour == 'off' 
+      return [(rand * 255).to_i,(rand * 255).to_i,(rand * 255).to_i] if @colour == 'random' 
 
       if @rgb.has_key?(@colour.to_sym)
-        c = @rgb[@colour.to_sym] 
+        return @rgb[@colour.to_sym] 
       else
-        c = @colour.gsub('rgb','').split('-')
+        return @colour.gsub('rgb','').split('-')
       end
+    end
 
+    def channel_data_from_rgb(d)
       data = []
-      (1..3).each do |i|
-        data << '%.1f' % ((c[i-1].to_f/255.0 * 100.0).to_f / 100)
-      end
-
+      (1..3).each {|i| data << '%.1f' % ((d[i-1].to_f/255.0 * 100.0).to_f / 100) }
       data
     end
 
@@ -100,8 +94,8 @@ get %r{/(1|2|all)+/(rgb\d{0,3}-\d{0,3}-\d{0,3}|red|blue|green|random|off)+$} do
   lights = [params['captures'].first]
   lights = @lights if lights.include?('all')
   colour = params['captures'][1]
-  colour = 'rgb0-0-0' if colour == 'off'
   halt 404, 'Oh dear! I understand what you\'re saying' unless lights && colour 
+  content_type 'text/plain', :charset => 'utf-8'
   LC.set_lights(
     :lights => lights,
     :colour => colour,
