@@ -81,12 +81,11 @@ before do
   }
 end
 
-# /all/red
 get %r{/(1|2|all)+/(rgb\d{0,3}-\d{0,3}-\d{0,3}|red|blue|green|random|off)+$} do
   lights = [params['captures'].first]
   lights = @lights if lights.include?('all')
   colour = params['captures'][1]
-  halt 404, 'Oh dear! I understand what you\'re saying' unless lights && colour 
+  halt 404, 'Oh dear! I can\'t find what you\'re looking for' unless lights && colour 
   content_type 'text/plain', :charset => 'utf-8'
   LC.set_lights(
     :lights => lights,
