@@ -1,12 +1,4 @@
-#require 'osc'
-module OSC
-  class UDPSocket
-    def initialize
-    end
-    def connect(a,b)
-    end
-  end
-end
+require 'osc'
 
 helpers do
   class LC 
@@ -40,7 +32,7 @@ helpers do
     def display
       count = 0
       channel_data_from_rgb(color_as_rgb).each do |c|
-        #@sock.send OSC::Message.new("/dmx/#{@channels[@light][count]}/set", 'f', c), 0
+        @sock.send OSC::Message.new("/dmx/#{@channels[@light][count]}/set", 'f', c), 0
         count = count + 1
       end
       self.to_s
