@@ -1,7 +1,7 @@
 Light Controller
 ================
 
-A simple HTTP proxy for controlling the spotlights at work. You can do things like
+A simple Sinatra HTTP proxy for controlling the spotlights at work. You can do things like
 
 http://lights.local/all/(red|green|blue)
 http://lights.local/all/rgb125-125-125
